@@ -1,30 +1,38 @@
-import { type ReactNode, useState, useEffect } from 'react'
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { type ReactNode, useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { NavLink, useNavigate, useLocation, useNavigationType } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
+import {
+  Home, FolderKanban, Search, Repeat2, Inbox, Quote, BookMarked, Share2, LayoutTemplate,
+  Clock, BarChart3, Settings, Plus, X, Menu, Sun, Moon, SunMoon, Cloud, CloudOff,
+  RefreshCw, AlertTriangle, FileText, ClipboardPaste, Link2, PenLine,
+} from 'lucide-react'
 import { db, save } from '../db/db'
 import { onSyncStatus, type SyncStatus, syncNow } from '../lib/sync'
 import { stripHtml } from '../lib/utils'
 import type { Theme } from '../App'
 
 const NAV = [
-  { to: '/', icon: '🏠', label: 'الرئيسية' },
-  { to: '/sections', icon: '🗂️', label: 'الأقسام' },
-  { to: '/search', icon: '🔍', label: 'البحث' },
-  { to: '/review', icon: '🔁', label: 'المراجعة' },
-  { to: '/inbox', icon: '📥', label: 'صندوق القراءة' },
+  { to: '/', Icon: Home, label: 'الرئيسية' },
+  { to: '/sections', Icon: FolderKanban, label: 'الأقسام' },
+  { to: '/search', Icon: Search, label: 'البحث' },
+  { to: '/review', Icon: Repeat2, label: 'المراجعة' },
+  { to: '/inbox', Icon: Inbox, label: 'صندوق القراءة' },
 ]
 const NAV2 = [
-  { to: '/quotes', icon: '❝', label: 'الاقتباسات' },
-  { to: '/references', icon: '📚', label: 'المراجع' },
-  { to: '/graph', icon: '🕸️', label: 'الخريطة المعرفية' },
-  { to: '/templates', icon: '📋', label: 'القوالب' },
-  { to: '/timeline', icon: '🕐', label: 'الخط الزمني' },
-  { to: '/dashboard', icon: '📊', label: 'الإحصائيات' },
-  { to: '/settings', icon: '⚙️', label: 'الإعدادات' },
+  { to: '/quotes', Icon: Quote, label: 'الاقتباسات' },
+  { to: '/references', Icon: BookMarked, label: 'المراجع' },
+  { to: '/graph', Icon: Share2, label: 'الخريطة المعرفية' },
+  { to: '/templates', Icon: LayoutTemplate, label: 'القوالب' },
+  { to: '/timeline', Icon: Clock, label: 'الخط الزمني' },
+  { to: '/dashboard', Icon: BarChart3, label: 'الإحصائيات' },
+  { to: '/settings', Icon: Settings, label: 'الإعدادات' },
 ]
 
-const SYNC_LABEL: Record<SyncStatus, string> = {
-  off: '⚪ بدون مزامنة', idle: '🟢 متزامن', syncing: '🔄 جارٍ المزامنة…', error: '🔴 خطأ بالمزامنة',
+const SYNC_UI: Record<SyncStatus, { Icon: any; label: string }> = {
+  off: { Icon: CloudOff, label: 'بدون مزامنة' },
+  idle: { Icon: Cloud, label: 'متزامن' },
+  syncing: { Icon: RefreshCw, label: 'جارٍ المزامنة…' },
+  error: { Icon: AlertTriangle, label: 'خطأ بالمزامنة' },
 }
 
 export default function Layout({ children, theme, setTheme, user }: {
@@ -35,13 +43,29 @@ export default function Layout({ children, theme, setTheme, user }: {
   const [sync, setSync] = useState<SyncStatus>('off')
   const nav = useNavigate()
   const loc = useLocation()
+  const navType = useNavigationType()
+  const mainRef = useRef<HTMLDivElement>(null)
   const dueCount = useLiveQuery(async () => {
-    const notes = await db.notes.filter((n) => !n.deleted && !!n.srs && n.srs!.due <= Date.now()).count()
-    return notes
+    return db.notes.filter((n) => !n.deleted && !!n.srs && n.srs!.due <= Date.now()).count()
   }, [], 0)
 
-  useEffect(() => onSyncStatus((s) => setSync(s)) && undefined, [])
+  useEffect(() => { onSyncStatus((s) => setSync(s)) }, [])
   useEffect(() => { setOpen(false); setFab(false) }, [loc.pathname])
+
+  // Scroll restoration: back/forward returns to the saved position, new pages start at top
+  useLayoutEffect(() => {
+    const el = mainRef.current
+    if (!el) return
+    if (navType === 'POP') el.scrollTop = Number(sessionStorage.getItem('scroll:' + loc.pathname) || 0)
+    else el.scrollTop = 0
+  }, [loc.pathname, navType])
+  useEffect(() => {
+    const el = mainRef.current
+    if (!el) return
+    const fn = () => sessionStorage.setItem('scroll:' + loc.pathname, String(el.scrollTop))
+    el.addEventListener('scroll', fn, { passive: true })
+    return () => el.removeEventListener('scroll', fn)
+  }, [loc.pathname])
 
   async function newNote(contentHTML = '') {
     const id = await save('notes', {
@@ -62,65 +86,70 @@ export default function Layout({ children, theme, setTheme, user }: {
     }
   }
 
+  const ThemeIcon = theme === 'dark' ? Moon : theme === 'light' ? Sun : SunMoon
+  const SyncIcon = SYNC_UI[sync].Icon
+
   return (
     <div className="app">
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
           <img src="./icon.svg" alt="" /> مكتبتي
         </div>
-        {NAV.map((n) => (
-          <NavLink key={n.to} to={n.to} className={({ isActive }) => `navlink ${isActive ? 'active' : ''}`} end={n.to === '/'}>
-            <span>{n.icon}</span> {n.label}
-            {n.to === '/review' && dueCount ? <span className="chip on" style={{ marginInlineStart: 'auto' }}>{dueCount}</span> : null}
+        {NAV.map(({ to, Icon, label }) => (
+          <NavLink key={to} to={to} className={({ isActive }) => `navlink ${isActive ? 'active' : ''}`} end={to === '/'}>
+            <Icon size={18} strokeWidth={1.9} /> {label}
+            {to === '/review' && dueCount ? <span className="chip on" style={{ marginInlineStart: 'auto' }}>{dueCount}</span> : null}
           </NavLink>
         ))}
         <div className="nav-section-title">المكتبة</div>
-        {NAV2.map((n) => (
-          <NavLink key={n.to} to={n.to} className={({ isActive }) => `navlink ${isActive ? 'active' : ''}`}>
-            <span>{n.icon}</span> {n.label}
+        {NAV2.map(({ to, Icon, label }) => (
+          <NavLink key={to} to={to} className={({ isActive }) => `navlink ${isActive ? 'active' : ''}`}>
+            <Icon size={18} strokeWidth={1.9} /> {label}
           </NavLink>
         ))}
         <div style={{ marginTop: 'auto', padding: '12px 12px 4px', fontSize: 12, color: 'var(--text-3)' }}>
-          <button className="btn ghost sm" onClick={() => syncNow()} title="مزامنة الآن">{SYNC_LABEL[sync]}</button>
+          <button className="btn ghost sm" onClick={() => syncNow()} title="مزامنة الآن">
+            <SyncIcon size={14} className={sync === 'syncing' ? 'spin' : ''} /> {SYNC_UI[sync].label}
+          </button>
           <div style={{ marginTop: 6 }}>
             <button
               className="btn ghost sm"
               onClick={() => setTheme(theme === 'dark' ? 'light' : theme === 'light' ? 'auto' : 'dark')}
             >
-              {theme === 'dark' ? '🌙 داكن' : theme === 'light' ? '☀️ فاتح' : '🌓 تلقائي'}
+              <ThemeIcon size={14} /> {theme === 'dark' ? 'داكن' : theme === 'light' ? 'فاتح' : 'تلقائي'}
             </button>
           </div>
           {user && <div style={{ marginTop: 6, padding: '0 6px' }}>{user.email}</div>}
         </div>
       </aside>
 
-      <div className="main">
+      <div className="main" ref={mainRef}>
         <div className="topbar">
-          <button className="btn ghost menu-btn" onClick={() => setOpen(!open)}>☰</button>
+          <button className="btn ghost menu-btn" onClick={() => setOpen(!open)}><Menu size={19} /></button>
           <div style={{ flex: 1 }} />
-          <button className="btn sm" onClick={() => nav('/search')}>🔍 بحث</button>
-          <button className="btn primary sm" onClick={() => newNote()}>+ ملاحظة</button>
+          <button className="btn sm" onClick={() => nav('/search')}><Search size={15} /> بحث</button>
+          <button className="btn primary sm" onClick={() => newNote()}><Plus size={15} /> ملاحظة</button>
         </div>
-        <div className="content">{children}</div>
+        <div className="content page-anim" key={loc.pathname}>{children}</div>
       </div>
 
       {/* Quick actions */}
       {fab && (
         <div className="fab-menu">
-          <button onClick={() => newNote()}>📝 ملاحظة جديدة</button>
-          <button onClick={() => { setFab(false); nav('/templates') }}>📋 من قالب</button>
-          <button onClick={() => { setFab(false); pasteNote() }}>📎 لصق من الحافظة</button>
-          <button onClick={() => { setFab(false); nav('/inbox?add=1') }}>🔗 حفظ رابط</button>
-          <button onClick={() => { setFab(false); nav('/quotes?add=1') }}>❝ اقتباس جديد</button>
+          <button onClick={() => newNote()}><PenLine size={17} /> ملاحظة جديدة</button>
+          <button onClick={() => { setFab(false); nav('/templates') }}><LayoutTemplate size={17} /> من قالب</button>
+          <button onClick={() => { setFab(false); pasteNote() }}><ClipboardPaste size={17} /> لصق من الحافظة</button>
+          <button onClick={() => { setFab(false); nav('/inbox?add=1') }}><Link2 size={17} /> حفظ رابط</button>
+          <button onClick={() => { setFab(false); nav('/quotes?add=1') }}><Quote size={17} /> اقتباس جديد</button>
         </div>
       )}
-      <button className="fab" onClick={() => setFab(!fab)}>{fab ? '×' : '+'}</button>
+      <button className="fab" onClick={() => setFab(!fab)}>{fab ? <X size={24} /> : <Plus size={24} />}</button>
 
       {/* Mobile bottom nav */}
       <nav className="mobile-nav">
-        {[...NAV.slice(0, 4), { to: '/settings', icon: '⚙️', label: 'الإعدادات' }].map((n) => (
-          <NavLink key={n.to} to={n.to} className={({ isActive }) => (isActive ? 'active' : '')} end={n.to === '/'}>
-            <span className="ic">{n.icon}</span> {n.label}
+        {[...NAV.slice(0, 4), NAV2[NAV2.length - 1]].map(({ to, Icon, label }) => (
+          <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'active' : '')} end={to === '/'}>
+            <span className="ic"><Icon size={20} strokeWidth={1.9} /></span> {label}
           </NavLink>
         ))}
       </nav>

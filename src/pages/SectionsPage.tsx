@@ -17,6 +17,22 @@ export default function SectionsPage() {
     return map
   }, [])
   const [editing, setEditing] = useState<Partial<Section> | null>(null)
+  const [dragId, setDragId] = useState<string | null>(null)
+
+  // Drag & drop reorder: move dragged section to the drop target's position
+  async function dropOn(targetId: string) {
+    if (!dragId || dragId === targetId || !sections) return
+    const list = [...sections]
+    const from = list.findIndex((x) => x.id === dragId)
+    const to = list.findIndex((x) => x.id === targetId)
+    if (from < 0 || to < 0) return
+    const [moved] = list.splice(from, 1)
+    list.splice(to, 0, moved)
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].order !== i) await save('sections', { id: list[i].id, order: i } as any)
+    }
+    setDragId(null)
+  }
 
   async function submit() {
     if (!editing?.name?.trim()) return
@@ -33,12 +49,20 @@ export default function SectionsPage() {
   return (
     <div>
       <h1 className="page-title">الأقسام</h1>
-      <p className="page-sub">نظّم معرفتك في أقسام بلا حدود</p>
+      <p className="page-sub">نظّم معرفتك في أقسام بلا حدود — اسحب البطاقات لإعادة الترتيب</p>
       <button className="btn primary" onClick={() => setEditing({})}>+ قسم جديد</button>
 
       <div className="grid cols-3" style={{ marginTop: 18 }}>
         {sections?.map((s) => (
-          <div key={s.id} className="card" style={{ position: 'relative' }}>
+          <div
+            key={s.id} className="card"
+            style={{ position: 'relative', opacity: dragId === s.id ? 0.4 : 1, cursor: 'grab' }}
+            draggable
+            onDragStart={() => setDragId(s.id)}
+            onDragEnd={() => setDragId(null)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); dropOn(s.id) }}
+          >
             <Link to={`/section/${s.id}`} style={{ color: 'inherit', display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 24 }}>{s.icon}</span>
               <div>

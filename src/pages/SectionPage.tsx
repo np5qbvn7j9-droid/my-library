@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, save, remove } from '../db/db'
-import NoteCard from '../components/NoteCard'
+import { NotesGrid } from '../components/NoteCard'
 import Modal from '../components/Modal'
 import EmptyState from '../components/EmptyState'
 import type { Folder } from '../types'
@@ -77,7 +77,7 @@ export default function SectionPage() {
 
       <div className="section-h">الملاحظات</div>
       {notes && notes.length > 0 ? (
-        <div className="grid cols-2">{notes.map((n) => <NoteCard key={n.id} note={n} />)}</div>
+        <NotesGrid notes={notes} />
       ) : (
         <EmptyState text="لا توجد ملاحظات هنا بعد" />
       )}

@@ -6,7 +6,11 @@
   --shadow: 0 1px 3px rgba(15, 23, 42, 0.07), 0 4px 14px rgba(15, 23, 42, 0.05);
   --shadow-lg: 0 8px 30px rgba(15, 23, 42, 0.14);
   --accent: #3b82c4;
-  --accent-soft: rgba(59, 130, 196, 0.12);
+  --accent-soft: color-mix(in srgb, var(--accent) 13%, transparent);
+  --fs-scale: 1;
+  --fw-base: 400;
+  --lh-content: 1.9;
+  --ls-content: 0px;
   --danger: #d5604c;
   --success: #4d9d7c;
   --warning: #d9a441;
@@ -33,15 +37,23 @@
   --text-3: #6b7583;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.45);
-  --accent: #5aa9e6;
-  --accent-soft: rgba(90, 169, 230, 0.14);
 }
+
+/* Personalization via data-attributes set from Settings */
+[data-radius='square'] { --radius: 6px; --radius-sm: 4px; }
+[data-density='compact'] .card { padding: 11px; }
+[data-density='compact'] .content { padding-top: 14px; }
+[data-density='compact'] .grid { gap: 8px; }
+[data-density='compact'] .navlink { padding: 6px 12px; }
+[data-density='compact'] .note-card p { -webkit-line-clamp: 1; }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 body {
   margin: 0;
   font-family: var(--font);
+  font-size: calc(14.5px * var(--fs-scale));
+  font-weight: var(--fw-base);
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
@@ -199,7 +211,11 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
 .editor-toolbar .sep { width: 1px; background: var(--border); margin: 4px 3px; }
 
 .ProseMirror {
-  min-height: 320px; outline: none; font-size: 15.5px; line-height: 1.9; padding: 4px 2px 60px;
+  min-height: 320px; outline: none; padding: 4px 2px 60px;
+  font-size: calc(15.5px * var(--fs-scale));
+  font-weight: var(--fw-base);
+  line-height: var(--lh-content);
+  letter-spacing: var(--ls-content);
 }
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder); float: right; color: var(--text-3); pointer-events: none; height: 0;
@@ -265,6 +281,27 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
   .mobile-nav a .ic { font-size: 20px; }
   .fab { bottom: 78px; }
   .fab-menu { bottom: 144px; }
+}
+
+/* ===== Motion & scrolling ===== */
+.page-anim { animation: pageIn 0.22s ease; }
+@keyframes pageIn { from { opacity: 0; transform: translateY(8px); } }
+
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Lucide icons align with text */
+.btn svg, .navlink svg, .fab-menu svg, .mobile-nav svg { flex-shrink: 0; }
+.navlink svg { color: inherit; }
+
+.main { overscroll-behavior: contain; }
+.card { content-visibility: auto; contain-intrinsic-size: auto 110px; }
+
+.notes-list { display: flex; flex-direction: column; gap: 8px; }
+.notes-list .note-card p { -webkit-line-clamp: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
 ::-webkit-scrollbar { width: 9px; height: 9px; }
