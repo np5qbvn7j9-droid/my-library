@@ -130,7 +130,8 @@ export default function Layout({ children, theme, setTheme, user }: {
           <button className="btn sm" onClick={() => nav('/search')}><Search size={15} /> بحث</button>
           <button className="btn primary sm" onClick={() => newNote()}><Plus size={15} /> ملاحظة</button>
         </div>
-        <div className="content page-anim" key={loc.pathname}>{children}</div>
+        {/* Back/forward keeps the page still (no replayed animation) — feels native */}
+        <div className={navType === 'POP' ? 'content' : 'content page-anim'} key={loc.pathname}>{children}</div>
       </div>
 
       {/* Quick actions */}

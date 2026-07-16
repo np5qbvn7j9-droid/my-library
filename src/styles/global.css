@@ -47,8 +47,9 @@
 [data-density='compact'] .navlink { padding: 6px 12px; }
 [data-density='compact'] .note-card p { -webkit-line-clamp: 1; }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; }
+html, body { overflow-x: hidden; overscroll-behavior-x: none; }
 body {
   margin: 0;
   font-family: var(--font);
@@ -58,7 +59,9 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
+  touch-action: manipulation; /* no double-tap zoom, instant taps */
 }
+img, video, iframe, canvas { max-width: 100%; }
 a { color: var(--accent); text-decoration: none; }
 button { font-family: var(--font); }
 input, textarea, select { font-family: var(--font); color: var(--text); }
@@ -229,12 +232,14 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
 }
 .ProseMirror pre {
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
-  padding: 12px 14px; direction: ltr; text-align: left; font-size: 13.5px; overflow-x: auto;
+  padding: 12px 14px; direction: ltr; text-align: left; font-size: 13.5px;
+  white-space: pre-wrap; overflow-wrap: anywhere; /* wraps instead of horizontal scroll */
 }
 .ProseMirror code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-size: 0.9em; }
 .ProseMirror img { max-width: 100%; border-radius: 10px; }
-.ProseMirror table { border-collapse: collapse; width: 100%; margin: 12px 0; }
-.ProseMirror th, .ProseMirror td { border: 1px solid var(--border); padding: 7px 10px; }
+.ProseMirror table { border-collapse: collapse; width: 100%; margin: 12px 0; table-layout: fixed; }
+.ProseMirror th, .ProseMirror td { border: 1px solid var(--border); padding: 7px 10px; word-break: break-word; }
+.ProseMirror a, .note-card, .card { overflow-wrap: anywhere; }
 .ProseMirror th { background: var(--surface-2); }
 .ProseMirror ul[data-type='taskList'] { list-style: none; padding-inline-start: 4px; }
 .ProseMirror ul[data-type='taskList'] li { display: flex; gap: 8px; align-items: flex-start; }
@@ -279,8 +284,16 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
   }
   .mobile-nav a.active { color: var(--accent); }
   .mobile-nav a .ic { font-size: 20px; }
-  .fab { bottom: 78px; }
-  .fab-menu { bottom: 144px; }
+  .fab { bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .fab-menu { bottom: calc(144px + env(safe-area-inset-bottom)); }
+
+  /* iOS zooms into inputs smaller than 16px — keep them at 16px so focusing
+     the search or any field never changes the page scale */
+  .input, input, textarea, select, .search-hero input { font-size: 16px; }
+
+  /* wide tables/images inside notes adapt to screen width */
+  .ProseMirror { max-width: 100%; }
+  .content { overflow-x: hidden; }
 }
 
 /* ===== Motion & scrolling ===== */
@@ -294,7 +307,11 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
 .btn svg, .navlink svg, .fab-menu svg, .mobile-nav svg { flex-shrink: 0; }
 .navlink svg { color: inherit; }
 
-.main { overscroll-behavior: contain; }
+.main { overscroll-behavior: contain; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+/* Navigation chrome feels native: not selectable, always steady */
+.sidebar, .mobile-nav, .topbar, .fab, .fab-menu, .editor-toolbar {
+  user-select: none; -webkit-user-select: none;
+}
 .card { content-visibility: auto; contain-intrinsic-size: auto 110px; }
 
 .notes-list { display: flex; flex-direction: column; gap: 8px; }
