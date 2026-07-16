@@ -4,7 +4,7 @@ import {
   RotateCcw, Download, Upload, RefreshCw, LogOut, Eye,
 } from 'lucide-react'
 import { exportAll, importAll } from '../db/db'
-import { getSavedConfig, saveConfig, clearConfig, initFirebase, signIn, signOut, watchAuth, ALLOWED_EMAIL } from '../lib/firebase'
+import { initFirebase, signIn, signOut, watchAuth, ALLOWED_EMAIL } from '../lib/firebase'
 import { startSync, stopSync, syncNow } from '../lib/sync'
 import { download } from '../lib/utils'
 import { useSettings, FONTS, ACCENTS, ensureAllFonts } from '../lib/settings'
@@ -17,10 +17,6 @@ const HOME_LABELS: Record<string, string> = {
 
 export default function SettingsPage({ user, setUser }: { user: any; setUser: (u: any) => void }) {
   const { settings, update, reset } = useSettings()
-  const [cfgText, setCfgText] = useState(() => {
-    const c = getSavedConfig()
-    return c ? JSON.stringify(c, null, 2) : ''
-  })
   const [msg, setMsg] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -29,7 +25,6 @@ export default function SettingsPage({ user, setUser }: { user: any; setUser: (u
 
   async function connect() {
     try {
-      saveConfig(cfgText)
       if (!initFirebase()) throw new Error('فشل تهيئة Firebase')
       watchAuth((u) => {
         setUser(u)
@@ -199,22 +194,10 @@ export default function SettingsPage({ user, setUser }: { user: any; setUser: (u
         ) : (
           <>
             <p style={{ fontSize: 13.5, color: 'var(--text-2)', lineHeight: 1.8 }}>
-              التطبيق يعمل الآن محليًا على هذا الجهاز. لتفعيل المزامنة بين أجهزتك:
-              أنشئ مشروعًا في <a href="https://console.firebase.google.com" target="_blank" rel="noreferrer">Firebase Console</a> بحساب
-              {' '}<b>{ALLOWED_EMAIL}</b>، فعّل Firestore وGoogle Sign-in، ثم الصق إعدادات المشروع (firebaseConfig) هنا.
-              التفاصيل خطوة بخطوة في ملف README داخل المشروع.
+              سجّل دخولك بحساب <b>{ALLOWED_EMAIL}</b> لتفعيل المزامنة الفورية بين جميع أجهزتك.
+              إعدادات الاتصال مدمجة في التطبيق — لا تحتاج لصق أي شيء.
             </p>
-            <textarea
-              className="input" dir="ltr" rows={8} style={{ fontFamily: 'monospace', fontSize: 12 }}
-              placeholder={'{\n  "apiKey": "...",\n  "authDomain": "...",\n  "projectId": "...",\n  "storageBucket": "...",\n  "messagingSenderId": "...",\n  "appId": "..."\n}'}
-              value={cfgText} onChange={(e) => setCfgText(e.target.value)}
-            />
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button className="btn primary" onClick={connect} disabled={!cfgText.trim()}>حفظ وتسجيل الدخول</button>
-              {getSavedConfig() && (
-                <button className="btn danger" onClick={() => { clearConfig(); setCfgText(''); setMsg('تم حذف الإعدادات — أعد تحميل الصفحة') }}>حذف الإعدادات</button>
-              )}
-            </div>
+            <button className="btn primary" onClick={connect}>تسجيل الدخول بحساب Google</button>
           </>
         )}
       </div>

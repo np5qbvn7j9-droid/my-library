@@ -10,34 +10,26 @@ import { getFirestore, type Firestore } from 'firebase/firestore'
 export const ALLOWED_EMAIL = 'gazzy155@gmail.com'
 const CONFIG_KEY = 'maktabati-firebase-config'
 
+// Built-in project config (personal single-user app; these identifiers are
+// safe to embed — data is protected by Firestore rules locked to ALLOWED_EMAIL)
+const DEFAULT_CONFIG = {
+  apiKey: 'AIzaSyBBFbtQ4Kmd8wajVDern-Nfrk2c3r-oT8I',
+  authDomain: 'maktabati-fe247.firebaseapp.com',
+  projectId: 'maktabati-fe247',
+  storageBucket: 'maktabati-fe247.firebasestorage.app',
+  messagingSenderId: '981125551324',
+  appId: '1:981125551324:web:6ac8af0e40314421565019',
+}
+
 let app: FirebaseApp | null = null
 let auth: Auth | null = null
 let firestore: Firestore | null = null
 
-export function getSavedConfig(): any | null {
-  try {
-    const raw = localStorage.getItem(CONFIG_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-export function saveConfig(json: string) {
-  const cfg = JSON.parse(json)
-  if (!cfg.apiKey || !cfg.projectId) throw new Error('الإعداد ناقص: يجب أن يحتوي على apiKey و projectId')
-  localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg))
-}
-
-export function clearConfig() {
-  localStorage.removeItem(CONFIG_KEY)
-}
-
 export function initFirebase(): boolean {
   if (app) return true
-  const cfg = getSavedConfig()
-  if (!cfg) return false
-  app = initializeApp(cfg)
+  // Old builds stored a pasted config; the built-in one is authoritative now
+  localStorage.removeItem(CONFIG_KEY)
+  app = initializeApp(DEFAULT_CONFIG)
   auth = getAuth(app)
   firestore = getFirestore(app)
   return true
