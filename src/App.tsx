@@ -41,6 +41,13 @@ export default function App() {
     return () => mq.removeEventListener('change', fn)
   }, [theme])
 
+  // Settings page changes the theme through this event
+  useEffect(() => {
+    const fn = (e: any) => setTheme(e.detail as Theme)
+    window.addEventListener('mk-theme', fn)
+    return () => window.removeEventListener('mk-theme', fn)
+  }, [])
+
   useEffect(() => {
     seedIfEmpty()
     if (initFirebase()) {

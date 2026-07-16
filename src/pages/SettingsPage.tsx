@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Palette, Type, Cloud, DatabaseBackup, Info, LayoutGrid, List, StretchHorizontal,
-  RotateCcw, Download, Upload, RefreshCw, LogOut, Eye,
+  RotateCcw, Download, Upload, RefreshCw, LogOut, Eye, Sun, Moon, SunMoon,
 } from 'lucide-react'
 import { exportAll, importAll } from '../db/db'
 import { initFirebase, signIn, signOut, watchAuth, ALLOWED_EMAIL } from '../lib/firebase'
@@ -18,6 +18,11 @@ const HOME_LABELS: Record<string, string> = {
 export default function SettingsPage({ user, setUser }: { user: any; setUser: (u: any) => void }) {
   const { settings, update, reset } = useSettings()
   const [msg, setMsg] = useState('')
+  const [theme, setThemeLocal] = useState(() => localStorage.getItem('maktabati-theme') || 'auto')
+  const setTheme = (t: string) => {
+    setThemeLocal(t)
+    window.dispatchEvent(new CustomEvent('mk-theme', { detail: t }))
+  }
   const fileRef = useRef<HTMLInputElement>(null)
 
   // Load all font families once so the picker previews render correctly
@@ -129,6 +134,11 @@ export default function SettingsPage({ user, setUser }: { user: any; setUser: (u
       {/* ===== Personalization ===== */}
       <div className="section-h"><Palette size={16} /> التخصيص</div>
       <div className="card">
+        <Row label="الوضع">
+          <button className={`chip ${theme === 'light' ? 'on' : ''}`} onClick={() => setTheme('light')}><Sun size={13} /> فاتح</button>
+          <button className={`chip ${theme === 'dark' ? 'on' : ''}`} onClick={() => setTheme('dark')}><Moon size={13} /> داكن</button>
+          <button className={`chip ${theme === 'auto' ? 'on' : ''}`} onClick={() => setTheme('auto')}><SunMoon size={13} /> تلقائي (حسب الجهاز)</button>
+        </Row>
         <Row label="لون الهوية">
           <button
             className={`chip ${!settings.accent ? 'on' : ''}`}

@@ -86,6 +86,7 @@ export default function NotePage() {
   }
 
   if (!note) return <div className="empty">الملاحظة غير موجودة</div>
+  /* wrapped in a centered prose column for distraction-free writing */
 
   const addTag = () => {
     const t = tagInput.trim().replace(/^#/, '')
@@ -94,7 +95,7 @@ export default function NotePage() {
   }
 
   return (
-    <div>
+    <div className="note-editor-wrap">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         <button className="btn ghost sm" onClick={() => nav(-1)}>← رجوع</button>
         <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{saved ? '✓ محفوظ' : '⏳ يحفظ…'}</span>
@@ -106,12 +107,12 @@ export default function NotePage() {
       </div>
 
       <input
-        className="input" style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'transparent', padding: '4px 0' }}
+        className="input" dir="auto" style={{ fontSize: 26, fontWeight: 700, border: 'none', background: 'transparent', padding: '4px 0' }}
         placeholder="عنوان الملاحظة…" value={title}
         onChange={(e) => { setTitle(e.target.value); update({ title: e.target.value }, true) }}
       />
       <input
-        className="input" style={{ border: 'none', background: 'transparent', padding: '2px 0', color: 'var(--text-2)' }}
+        className="input" dir="auto" style={{ border: 'none', background: 'transparent', padding: '2px 0 10px', color: 'var(--text-2)' }}
         placeholder="وصف مختصر…" value={desc}
         onChange={(e) => { setDesc(e.target.value); update({ description: e.target.value }, true) }}
       />
