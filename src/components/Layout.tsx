@@ -91,7 +91,7 @@ export default function Layout({ children, theme, setTheme, user }: {
   const SyncIcon = SYNC_UI[sync].Icon
 
   return (
-    <div className="app">
+    <div className={`app ${open ? 'drawer-open' : ''}`}>
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
           <img src="./icon.svg" alt="" /> مكتبتي

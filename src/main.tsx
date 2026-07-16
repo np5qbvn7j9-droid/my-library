@@ -21,3 +21,14 @@ if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('./sw.js').catch(() => {})
   })
 }
+
+// Touch devices: suppress the browser context menu (long-press) so navigation
+// feels native. Desktop right-click keeps working normally.
+if (window.matchMedia('(pointer: coarse)').matches) {
+  window.addEventListener('contextmenu', (e) => {
+    const t = e.target as HTMLElement
+    // allow the menu inside editable areas (copy/paste in the editor and inputs)
+    if (t.closest('.ProseMirror, input, textarea')) return
+    e.preventDefault()
+  })
+}
