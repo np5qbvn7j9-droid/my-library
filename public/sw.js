@@ -1,5 +1,5 @@
 // Simple offline-first service worker: cache app shell, network-first for navigation
-const CACHE = 'maktabati-v1'
+const CACHE = 'maktabati-v2'
 
 self.addEventListener('install', (e) => {
   self.skipWaiting()
