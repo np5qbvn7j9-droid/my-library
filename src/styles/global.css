@@ -280,7 +280,9 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
   .mobile-nav {
     display: flex; position: fixed; bottom: 0; inset-inline: 0; z-index: 50;
     background: var(--surface); border-top: 1px solid var(--border);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    /* tuck labels close to the bottom like native tab bars; keep just enough
+       clearance for the iOS home indicator */
+    padding: 7px 4px max(6px, calc(env(safe-area-inset-bottom) - 14px));
   }
   .mobile-nav a {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -288,8 +290,8 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
   }
   .mobile-nav a.active { color: var(--accent); }
   .mobile-nav a .ic { font-size: 20px; }
-  .fab { bottom: calc(78px + env(safe-area-inset-bottom)); }
-  .fab-menu { bottom: calc(144px + env(safe-area-inset-bottom)); }
+  .fab { bottom: calc(70px + max(6px, calc(env(safe-area-inset-bottom) - 14px))); }
+  .fab-menu { bottom: calc(136px + max(6px, calc(env(safe-area-inset-bottom) - 14px))); }
 
   /* iOS zooms into inputs smaller than 16px — keep them at 16px so focusing
      the search or any field never changes the page scale */
