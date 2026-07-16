@@ -9,6 +9,7 @@ import {
 import { db, save } from '../db/db'
 import { onSyncStatus, type SyncStatus, syncNow } from '../lib/sync'
 import { stripHtml } from '../lib/utils'
+import UpdateBanner from './UpdateBanner'
 import type { Theme } from '../App'
 
 const NAV = [
@@ -156,6 +157,7 @@ export default function Layout({ children, theme, setTheme, user }: {
       </nav>
 
       {open && <div className="modal-overlay" style={{ zIndex: 80 }} onClick={() => setOpen(false)} />}
+      <UpdateBanner />
     </div>
   )
 }

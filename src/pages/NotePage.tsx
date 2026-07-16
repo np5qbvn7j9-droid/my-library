@@ -22,17 +22,35 @@ export default function NotePage() {
   const [saved, setSaved] = useState(true)
   const timer = useRef<any>(null)
 
-  // Related notes: outgoing wiki links + backlinks + shared tags
+  // Title/description are local state so typing is instant (never waits for
+  // the DB round-trip); they load once per note and save in the background.
+  const [title, setTitle] = useState('')
+  const [desc, setDesc] = useState('')
+  const loadedId = useRef<string | null>(null)
+  useEffect(() => {
+    if (note && loadedId.current !== note.id) {
+      loadedId.current = note.id
+      setTitle(note.title || '')
+      setDesc(note.description || '')
+    }
+  }, [note])
+
+  // Related notes via indexes (title / *links / *tags) — stays fast at 50k+ notes
   const related = useLiveQuery(async () => {
     if (!note) return { linked: [], backlinks: [], similar: [] }
-    const all = await db.notes.filter((n) => !n.deleted && n.id !== note.id).toArray()
     const myTitle = (note.title || '').trim()
-    const linked = all.filter((n) => note.links?.includes((n.title || '').trim()))
-    const backlinks = all.filter((n) => myTitle && n.links?.includes(myTitle))
-    const myTags = new Set(note.tags || [])
-    const similar = all
-      .filter((n) => !linked.includes(n) && !backlinks.includes(n) && (n.tags || []).some((t) => myTags.has(t)))
-      .slice(0, 4)
+    const linked = note.links?.length
+      ? await db.notes.where('title').anyOf(note.links).filter((n) => !n.deleted && n.id !== note.id).toArray()
+      : []
+    const backlinks = myTitle
+      ? await db.notes.where('links').equals(myTitle).filter((n) => !n.deleted && n.id !== note.id).toArray()
+      : []
+    const seen = new Set([...linked, ...backlinks].map((n) => n.id))
+    const similar = note.tags?.length
+      ? await db.notes.where('tags').anyOf(note.tags)
+          .filter((n) => !n.deleted && n.id !== note.id && !seen.has(n.id))
+          .limit(4).toArray()
+      : []
     return { linked, backlinks, similar }
   }, [note?.links?.join(','), note?.tags?.join(','), note?.title, note?.id])
 
@@ -89,13 +107,13 @@ export default function NotePage() {
 
       <input
         className="input" style={{ fontSize: 24, fontWeight: 700, border: 'none', background: 'transparent', padding: '4px 0' }}
-        placeholder="عنوان الملاحظة…" value={note.title}
-        onChange={(e) => update({ title: e.target.value }, true)}
+        placeholder="عنوان الملاحظة…" value={title}
+        onChange={(e) => { setTitle(e.target.value); update({ title: e.target.value }, true) }}
       />
       <input
         className="input" style={{ border: 'none', background: 'transparent', padding: '2px 0', color: 'var(--text-2)' }}
-        placeholder="وصف مختصر…" value={note.description}
-        onChange={(e) => update({ description: e.target.value }, true)}
+        placeholder="وصف مختصر…" value={desc}
+        onChange={(e) => { setDesc(e.target.value); update({ description: e.target.value }, true) }}
       />
 
       {showMeta && (

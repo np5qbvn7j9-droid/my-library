@@ -1,9 +1,10 @@
+import { memo } from 'react'
 import { Link } from 'react-router-dom'
 import { Pin, Star, Repeat2 } from 'lucide-react'
 import type { Note } from '../types'
 import { timeAgo } from '../lib/utils'
 
-export default function NoteCard({ note }: { note: Note }) {
+function NoteCardInner({ note }: { note: Note }) {
   return (
     <Link to={`/note/${note.id}`} style={{ color: 'inherit' }}>
       <div className="card clickable note-card">
@@ -25,6 +26,10 @@ export default function NoteCard({ note }: { note: Note }) {
     </Link>
   )
 }
+
+// Re-renders only when the note itself changed — keeps long lists smooth
+const NoteCard = memo(NoteCardInner, (a, b) => a.note.id === b.note.id && a.note.updatedAt === b.note.updatedAt)
+export default NoteCard
 
 // Renders notes in the user's preferred layout (cards / grid / list) from Settings
 import { useSettings } from '../lib/settings'

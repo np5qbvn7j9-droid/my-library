@@ -27,6 +27,10 @@ class MaktabatiDB extends Dexie {
       templates: 'id, updatedAt, dirty, deleted',
       meta: 'key',
     })
+    // v2: index title + wiki links so "related notes" uses indexes instead of full scans
+    this.version(2).stores({
+      notes: 'id, updatedAt, createdAt, dirty, deleted, sectionId, folderId, pinned, favorite, archived, title, *tags, *links',
+    })
   }
 }
 

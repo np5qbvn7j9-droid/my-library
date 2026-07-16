@@ -309,6 +309,18 @@ label.field > span { display: block; margin-bottom: 5px; font-weight: 500; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ===== Update notification ===== */
+.update-banner {
+  position: fixed; inset-inline: 16px; bottom: 16px; z-index: 120;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 12px 16px;
+  animation: slideUp 0.25s ease; max-width: 480px; margin-inline-start: auto;
+}
+@media (max-width: 860px) {
+  .update-banner { bottom: calc(66px + max(6px, calc(env(safe-area-inset-bottom) - 14px))); }
+}
+
 /* Lucide icons align with text */
 .btn svg, .navlink svg, .fab-menu svg, .mobile-nav svg { flex-shrink: 0; }
 .navlink svg { color: inherit; }
