@@ -6,6 +6,7 @@ import RichEditor from '../components/RichEditor'
 import NoteCard from '../components/NoteCard'
 import { stripHtml, extractWikiLinks, srsInit, fmtDate, uid, now } from '../lib/utils'
 import { invalidateIndex } from '../lib/search'
+import { toast } from '../lib/toast'
 import { NOTE_COLORS, type Note } from '../types'
 
 export default function NotePage() {
@@ -19,7 +20,6 @@ export default function NotePage() {
   const references = useLiveQuery(() => db.references.filter((r) => !r.deleted).toArray(), [])
   const [showMeta, setShowMeta] = useState(false)
   const [tagInput, setTagInput] = useState('')
-  const [saved, setSaved] = useState(true)
   const timer = useRef<any>(null)
 
   // Title/description are local state so typing is instant (never waits for
@@ -54,28 +54,51 @@ export default function NotePage() {
     return { linked, backlinks, similar }
   }, [note?.links?.join(','), note?.tags?.join(','), note?.title, note?.id])
 
-  useEffect(() => () => clearTimeout(timer.current), [])
-
   // Pending patches accumulate so a debounced save never drops an earlier edit
   const pending = useRef<Partial<Note>>({})
+
+  async function flush(noteId: string) {
+    const p = pending.current
+    pending.current = {}
+    if (!Object.keys(p).length) return
+    const fresh = await db.notes.get(noteId)
+    if (!fresh) return
+    const merged: any = { ...fresh, ...p, id: noteId }
+    merged.contentText = stripHtml(merged.contentHTML || '')
+    merged.links = extractWikiLinks(merged.contentText)
+    await save('notes', merged)
+    invalidateIndex()
+  }
+
+  // Leaving the page: save what's pending, and silently drop the note if it
+  // stayed completely empty (no ghost notes from opening "new note" by mistake)
+  useEffect(() => {
+    return () => {
+      clearTimeout(timer.current)
+      const noteId = id!
+      ;(async () => {
+        await flush(noteId)
+        const fresh = await db.notes.get(noteId)
+        if (
+          fresh && !fresh.deleted &&
+          !(fresh.title || '').trim() && !(fresh.description || '').trim() &&
+          !stripHtml(fresh.contentHTML || '').trim() &&
+          !(fresh.tags || []).length && !(fresh.refIds || []).length
+        ) {
+          if (fresh.dirty) await db.notes.delete(noteId) // never synced: erase completely
+          else await remove('notes', noteId) // synced before: soft-delete so devices agree
+        }
+      })()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+
   function update(patch: Partial<Note>, debounce = false) {
     if (!note) return
-    setSaved(false)
     pending.current = { ...pending.current, ...patch }
-    const doSave = async () => {
-      const p = pending.current
-      pending.current = {}
-      const fresh = (await db.notes.get(note.id)) || note
-      const merged: any = { ...fresh, ...p, id: note.id }
-      merged.contentText = stripHtml(merged.contentHTML || '')
-      merged.links = extractWikiLinks(merged.contentText)
-      await save('notes', merged)
-      invalidateIndex()
-      setSaved(true)
-    }
     clearTimeout(timer.current)
-    if (debounce) timer.current = setTimeout(doSave, 700)
-    else doSave()
+    if (debounce) timer.current = setTimeout(() => flush(note.id), 700)
+    else flush(note.id)
   }
 
   async function duplicate() {
@@ -98,7 +121,6 @@ export default function NotePage() {
     <div className="note-editor-wrap">
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         <button className="btn ghost sm" onClick={() => nav(-1)}>← رجوع</button>
-        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{saved ? '✓ محفوظ' : '⏳ يحفظ…'}</span>
         <div style={{ flex: 1 }} />
         <button className={`btn ghost sm ${note.pinned ? 'on' : ''}`} title="تثبيت" onClick={() => update({ pinned: note.pinned ? 0 : 1 })}>📌</button>
         <button className="btn ghost sm" title="مفضلة" onClick={() => update({ favorite: note.favorite ? 0 : 1 })}>{note.favorite ? '⭐' : '☆'}</button>
@@ -161,9 +183,17 @@ export default function NotePage() {
           </label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn sm" onClick={duplicate}>📄 نسخ الملاحظة</button>
-            <button className="btn sm" onClick={() => update({ archived: note.archived ? 0 : 1 })}>{note.archived ? '📤 إلغاء الأرشفة' : '🗄️ أرشفة'}</button>
+            <button className="btn sm" onClick={() => {
+              const archiving = !note.archived
+              update({ archived: archiving ? 1 : 0 })
+              toast(archiving ? 'تمت أرشفة الملاحظة' : 'تمت استعادة الملاحظة من الأرشيف', 'info')
+            }}>{note.archived ? '📤 إلغاء الأرشفة' : '🗄️ أرشفة'}</button>
             <button className="btn danger sm" onClick={async () => {
-              if (confirm('حذف الملاحظة نهائيًا؟')) { await remove('notes', note.id); nav(-1) }
+              if (confirm('حذف الملاحظة نهائيًا؟')) {
+                await remove('notes', note.id)
+                toast('تم حذف الملاحظة', 'info')
+                nav(-1)
+              }
             }}>🗑️ حذف</button>
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 8 }}>

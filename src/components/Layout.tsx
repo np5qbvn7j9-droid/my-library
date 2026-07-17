@@ -6,9 +6,10 @@ import {
   Clock, BarChart3, Settings, Plus, X, Menu, Sun, Moon, SunMoon, Cloud, CloudOff,
   RefreshCw, AlertTriangle, FileText, ClipboardPaste, Link2, PenLine,
 } from 'lucide-react'
-import { db, save } from '../db/db'
+import { db, save, SYNC_TABLES } from '../db/db'
 import { onSyncStatus, type SyncStatus, syncNow } from '../lib/sync'
 import { stripHtml } from '../lib/utils'
+import { toast, ToastHost } from '../lib/toast'
 import UpdateBanner from './UpdateBanner'
 import type { Theme } from '../App'
 
@@ -52,6 +53,29 @@ export default function Layout({ children, theme, setTheme, user }: {
 
   useEffect(() => { onSyncStatus((s) => setSync(s)) }, [])
   useEffect(() => { setOpen(false); setFab(false) }, [loc.pathname])
+
+  // Online/offline awareness + count of local changes waiting to sync
+  const [online, setOnline] = useState(navigator.onLine)
+  useEffect(() => {
+    const on = () => setOnline(true)
+    const off = () => setOnline(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
+  }, [])
+  const pendingCount = useLiveQuery(async () => {
+    let n = 0
+    for (const t of SYNC_TABLES) n += await (db as any)[t].where('dirty').equals(1).count()
+    return n
+  }, [], 0)
+
+  // One-time toast after a successful in-app update
+  useEffect(() => {
+    if (sessionStorage.getItem('mk-updated')) {
+      sessionStorage.removeItem('mk-updated')
+      toast('تم تحديث التطبيق بنجاح', 'success')
+    }
+  }, [])
 
   // Scroll restoration: back/forward returns to the saved position, new pages start at top
   useLayoutEffect(() => {
@@ -109,9 +133,20 @@ export default function Layout({ children, theme, setTheme, user }: {
           </NavLink>
         ))}
         <div style={{ marginTop: 'auto', padding: '12px 12px 4px', fontSize: 12, color: 'var(--text-3)' }}>
-          <button className="btn ghost sm" onClick={() => syncNow()} title="مزامنة الآن">
-            <SyncIcon size={14} className={sync === 'syncing' ? 'spin' : ''} /> {SYNC_UI[sync].label}
-          </button>
+          {/* the sync chip appears only when something needs attention */}
+          {sync !== 'off' && (!online || sync === 'error' || sync === 'syncing' || pendingCount > 0) && (
+            <button className="btn ghost sm" onClick={() => syncNow()} title="مزامنة الآن">
+              {!online ? (
+                <><CloudOff size={14} style={{ color: 'var(--danger)' }} /> بدون إنترنت — يعمل محليًا</>
+              ) : sync === 'error' ? (
+                <><AlertTriangle size={14} style={{ color: 'var(--danger)' }} /> خطأ بالمزامنة — أعد المحاولة</>
+              ) : sync === 'syncing' ? (
+                <><RefreshCw size={14} className="spin" /> جارٍ المزامنة…</>
+              ) : (
+                <><SyncIcon size={14} style={{ color: 'var(--warning)' }} /> {pendingCount} تغيير بانتظار المزامنة</>
+              )}
+            </button>
+          )}
           <div style={{ marginTop: 6 }}>
             <button
               className="btn ghost sm"
@@ -158,6 +193,7 @@ export default function Layout({ children, theme, setTheme, user }: {
 
       {open && <div className="modal-overlay" style={{ zIndex: 80 }} onClick={() => setOpen(false)} />}
       <UpdateBanner />
+      <ToastHost />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { MoreVertical, Pencil, Pin, PinOff, Trash2, Plus, GripVertical, CheckCir
 import { db, save, remove } from '../db/db'
 import Modal from '../components/Modal'
 import { timeAgo } from '../lib/utils'
+import { toast } from '../lib/toast'
 import type { Section } from '../types'
 
 const EMOJIS = ['📁', '🕌', '📜', '🗺️', '🏛️', '📈', '💻', '🤖', '⌨️', '📚', '🩺', '🗂️', '🏥', '💰', '🚀', '🌱', '⚖️', '🎨', '🍎', '✈️', '🧠', '🔬', '🎓', '🕐']
@@ -76,6 +77,7 @@ export default function SectionsPage() {
       order: editing.order ?? (sections?.length || 0),
       pinned: editing.pinned ?? 0,
     } as any)
+    toast(editing.id ? 'تم تعديل القسم' : 'تم إنشاء القسم بنجاح')
     setEditing(null)
   }
 
@@ -95,6 +97,7 @@ export default function SectionsPage() {
       for (const n of notes) await save('notes', { id: n.id, sectionId: target, folderId: null } as any)
     }
     for (const s of deleting) await remove('sections', s.id)
+    toast(deleting.length === 1 ? 'تم حذف القسم' : `تم حذف ${deleting.length} أقسام`, 'info')
     setDeleting(null)
     exitSelect()
   }

@@ -7,6 +7,7 @@ import { exportAll, importAll } from '../db/db'
 import { initFirebase, signIn, signOut, watchAuth, ALLOWED_EMAIL } from '../lib/firebase'
 import { startSync, stopSync, syncNow } from '../lib/sync'
 import { download } from '../lib/utils'
+import { toast } from '../lib/toast'
 import { useSettings, FONTS, ACCENTS, ensureAllFonts } from '../lib/settings'
 
 const PREVIEW_TEXT = 'العلم يبني بيوتًا لا عماد لها — أبجد هوز ١٢٣'
@@ -38,23 +39,26 @@ export default function SettingsPage({ user, setUser }: { user: any; setUser: (u
       const u = await signIn()
       setUser(u)
       startSync()
-      setMsg('✅ تم الاتصال وتسجيل الدخول بنجاح — المزامنة تعمل الآن')
+      toast('تم تسجيل الدخول — المزامنة تعمل الآن', 'success')
+      setMsg('')
     } catch (e: any) {
+      toast('تعذر تسجيل الدخول', 'error')
       setMsg('❌ ' + (e.message || 'حدث خطأ'))
     }
   }
 
   async function doExport() {
     download(`maktabati-backup-${new Date().toISOString().slice(0, 10)}.json`, await exportAll())
+    toast('تم إكمال النسخ الاحتياطي', 'success')
   }
 
   async function doImport(file: File) {
     try {
       const n = await importAll(await file.text())
-      setMsg(`✅ تم استيراد ${n} عنصر`)
+      toast(`تمت استعادة النسخة الاحتياطية — ${n} عنصر`, 'success')
       syncNow()
     } catch (e: any) {
-      setMsg('❌ ' + e.message)
+      toast('فشل الاستيراد: ' + e.message, 'error')
     }
   }
 

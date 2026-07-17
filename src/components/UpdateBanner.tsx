@@ -48,6 +48,7 @@ export default function UpdateBanner() {
       const regs = (await navigator.serviceWorker?.getRegistrations?.()) || []
       await Promise.all(regs.map((r) => r.update()))
     } catch {}
+    sessionStorage.setItem('mk-updated', '1') // greet with a success toast after reload
     location.reload()
   }
 

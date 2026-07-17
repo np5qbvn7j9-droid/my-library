@@ -7,6 +7,7 @@ import {
 } from 'firebase/firestore'
 import { db, SYNC_TABLES, getMeta, setMeta, onLocalWrite, type SyncTable } from '../db/db'
 import { getDb, getAuthUser } from './firebase'
+import { toast } from './toast'
 
 export type SyncStatus = 'off' | 'idle' | 'syncing' | 'error'
 let status: SyncStatus = 'off'
@@ -90,6 +91,8 @@ export async function syncNow() {
     setStatus('idle')
   } catch (e) {
     console.error('sync failed', e)
+    // notify once per failure streak, not on every retry
+    if (status !== 'error') toast('تعذرت المزامنة — سيُعاد تلقائيًا', 'warning')
     setStatus('error')
   } finally {
     running = false
@@ -101,12 +104,19 @@ const schedulePush = () => {
   pushTimer = setTimeout(syncNow, 2500) // debounce rapid edits
 }
 
+let started = false
+
 export function startSync() {
-  onLocalWrite(schedulePush)
   syncNow()
   clearInterval(pullTimer)
   pullTimer = setInterval(syncNow, 60_000)
-  window.addEventListener('online', syncNow)
+  if (started) return // listeners are registered once per session
+  started = true
+  onLocalWrite(schedulePush)
+  window.addEventListener('online', () => {
+    toast('عاد الاتصال — جارٍ مزامنة التغييرات', 'info')
+    syncNow()
+  })
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') syncNow()
   })
